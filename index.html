@@ -272,7 +272,6 @@
             { cat: "병원/공항/기차", kr: "8인민병원", cn: "无锡市第八人民医院" },
             { cat: "병원/공항/기차", kr: "화웨이병원", cn: "华卫医院" },
             { cat: "병원/공항/기차", kr: "래미안 치과", cn: "休美安口腔" },
-            // 팀장님 요청 반영: 홍차오 공항의 중국어 명칭 오류(푸동으로 되어있던 점) 수정 완료!
             { cat: "병원/공항/기차", kr: "홍차오공항(상해)", cn: "上海虹桥国际机场" },
             { cat: "병원/공항/기차", kr: "푸동공항(상해)", cn: "上海浦东国际机场" }
         ];
@@ -326,10 +325,11 @@
                 const { data, error } = await _supabase.from(tableFamily).select('*').order('created_at', { ascending: true });
                 const combined = [...defaultFamily, ...(data || [])];
 
+                // ★ 수정된 부분: 항목(title)의 폰트 크기를 본문과 동일한 text-sm으로 변경하고, 색상을 살짝 짙게(text-gray-600) 맞췄습니다.
                 listDiv.innerHTML = combined.map(item => `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
                         <div class="flex-1 overflow-hidden">
-                            <h4 class="text-[10px] font-bold text-gray-400 mb-0.5 truncate">${item.title}</h4>
+                            <h4 class="text-sm font-bold text-gray-600 mb-0.5 truncate">${item.title}</h4>
                             <p class="text-sm font-bold text-gray-800 line-clamp-2">${item.content}</p>
                         </div>
                         <button onclick="copyText('${item.content}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
@@ -359,7 +359,6 @@
             const listDiv = document.getElementById('placesList');
             const chipDiv = document.getElementById('categoryChips');
 
-            // 칩 UI 그리기
             const cats = ["전체", "집/회사/교회", "음식점/카페", "쇼핑몰/광장/스포츠", "공원/관광지", "병원/공항/기차"];
             chipDiv.innerHTML = cats.map(c => `
                 <button onclick="showPlaces('${c}')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition border ${currentCategory === c ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-white text-gray-500 border-gray-200'}">
@@ -382,6 +381,7 @@
                     return;
                 }
 
+                // ★ 수정된 부분: 한국어 이름(krText) 폰트를 text-sm으로 중국어(cnText)와 동일하게 키웠습니다.
                 listDiv.innerHTML = combined.map(item => {
                     const cnText = item.cn || item.name_cn;
                     const krText = item.kr || item.name_kr;
@@ -391,7 +391,7 @@
                         <div class="flex-1 overflow-hidden">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-bold">${catText}</span>
-                                <h4 class="text-xs font-bold text-gray-800 truncate">${krText}</h4>
+                                <h4 class="text-sm font-bold text-gray-800 truncate">${krText}</h4>
                             </div>
                             <p class="text-sm font-bold text-red-500 line-clamp-2">${cnText}</p>
                         </div>
@@ -415,7 +415,6 @@
             else {
                 document.getElementById('placeKr').value = '';
                 document.getElementById('placeCn').value = '';
-                // 추가 후 해당 카테고리로 자동 이동
                 showPlaces(category);
             }
         };
