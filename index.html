@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>명국이의 중국생활 도우미 🇨🇳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .page-enter {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toast {
+            transition: opacity 0.3s, transform 0.3s;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800 pb-20 selection:bg-blue-200">
+
+    <div id="navBar"
+        class="fixed top-0 w-full bg-blue-600 text-white p-4 shadow-md z-40 hidden flex items-center justify-between">
+        <button onclick="goHome()" class="text-xl px-2 active:scale-95 transition"><i
+                class="fas fa-chevron-left"></i></button>
+        <h1 id="navTitle" class="font-bold text-lg">메뉴명</h1>
+        <div class="w-8"></div>
+    </div>
+
+    <div id="topSpacer" class="hidden h-14"></div>
+
+    <div class="max-w-md mx-auto pt-4 px-4 relative">
+
+        <div id="view-main" class="page-enter">
+            <div
+                class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-6 p-8 text-center text-white">
+                <h1 class="text-2xl font-black mb-2 tracking-tight">명국이의<br>중국생활 도우미 🇨🇳</h1>
+                <p class="text-xs text-blue-200 uppercase tracking-widest font-bold">Wuxi Life Assistant</p>
+            </div>
+
+            <button onclick="showView('family', '가족/집 정보')"
+                class="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between mb-4 hover:shadow-md transition active:scale-95">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center text-xl">
+                        <i class="fas fa-home"></i></div>
+                    <div class="text-left">
+                        <h2 class="font-bold text-gray-800 text-lg">가족 / 집</h2>
+                        <p class="text-[11px] text-gray-400">전화번호, 주소, 비밀번호 등</p>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-300"></i>
+            </button>
+
+            <button onclick="showView('company', '회사/교회 셔틀')"
+                class="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between mb-8 hover:shadow-md transition active:scale-95">
+                <div class="flex items-center gap-4">
+                    <div
+                        class="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center text-xl">
+                        <i class="fas fa-bus"></i></div>
+                    <div class="text-left">
+                        <h2 class="font-bold text-gray-800 text-lg">회사 / 교회</h2>
+                        <p class="text-[11px] text-gray-400">셔틀버스 운행 시간표</p>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-300"></i>
+            </button>
+
+            <h3 class="font-black text-gray-500 text-sm mb-3 ml-2"><i
+                    class="fas fa-map-marker-alt text-red-400 mr-1"></i> 주요 장소 (택시/길찾기)</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="showPlaces('전체')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-layer-group text-gray-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">전체보기</span></button>
+                <button onclick="showPlaces('집/회사/교회')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-building text-blue-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">집/회사/교회</span></button>
+                <button onclick="showPlaces('음식점/카페')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-utensils text-orange-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">음식점/카페</span></button>
+                <button onclick="showPlaces('쇼핑몰/광장/스포츠')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-shopping-bag text-pink-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">쇼핑몰/광장</span></button>
+                <button onclick="showPlaces('공원/관광지')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-tree text-green-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">공원/관광지</span></button>
+                <button onclick="showPlaces('병원/공항/기차')"
+                    class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center active:scale-95 transition"><i
+                        class="fas fa-hospital text-red-400 text-2xl mb-2 block"></i><span
+                        class="font-bold text-sm text-gray-700">병원/공항/기차</span></button>
+            </div>
+        </div>
+
+        <div id="view-family" class="hidden page-enter space-y-4">
+            <div id="familyList" class="space-y-3"></div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                <h3 class="font-bold text-sm text-gray-500 mb-3"><i class="fas fa-plus-circle"></i> 내 정보 추가</h3>
+                <div class="space-y-2">
+                    <input type="text" id="famTitle" placeholder="항목 (예: 내 중국 계좌번호)"
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-blue-500">
+                    <input type="text" id="famContent" placeholder="내용 (예: 1234-5678-90)"
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-blue-500">
+                    <button onclick="addFamilyInfo()"
+                        class="w-full bg-blue-600 text-white font-bold p-3 rounded-xl hover:bg-blue-700 transition">추가하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-company" class="hidden page-enter space-y-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-indigo-500">
+                <h3 class="font-black text-indigo-600 mb-3 text-lg"><i class="fas fa-building"></i> 회사 출퇴근 셔틀</h3>
+                <div class="space-y-4 text-sm text-gray-700">
+                    <div>
+                        <p class="font-bold text-gray-800 bg-gray-50 p-1.5 rounded inline-block mb-1">🌞 출근</p>
+                        <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                            <li><span class="font-bold">무석조근선:</span> 6:30 완커 정문 맞은편</li>
+                            <li><span class="font-bold">완커조근선:</span> 6:55 완커 정문 앞</li>
+                            <li><span class="font-bold">완커선:</span> 7:02, 7:07, 7:12 완커 정문 앞</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800 bg-gray-50 p-1.5 rounded inline-block mb-1">🌙 퇴근</p>
+                        <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                            <li><span class="font-bold">叙康里 쉬캉리선:</span> 17:20</li>
+                            <li><span class="font-bold">錦江苑 금강원선:</span> 17:20</li>
+                            <li><span class="font-bold">오샹선:</span> 8:20 ~ 20:40 사이에 계속</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-bold text-gray-800 bg-gray-50 p-1.5 rounded inline-block mb-1">🗓️ 주말</p>
+                        <ul class="list-disc pl-5 space-y-1 text-gray-600">
+                            <li><span class="font-bold">출근:</span> 정문 앞 7:07</li>
+                            <li><span class="font-bold">퇴근:</span> 인슈선(隱秀线), 롱산선(龙山线), 황샹선(黄巷线)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border-l-4 border-yellow-500">
+                <h3 class="font-black text-yellow-600 mb-3 text-lg"><i class="fas fa-church"></i> 무석연합교회 셔틀</h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="bg-gray-50 p-3 rounded-lg"><span class="font-bold text-blue-600">2호차(29인승):</span>
+                        찐룬(10:50) 👉 완커(10:55)</li>
+                    <li class="bg-gray-50 p-3 rounded-lg"><span class="font-bold text-blue-600">1호차(49인승):</span>
+                        찐룬(11:00) 👉 완커(11:05)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="view-places" class="hidden page-enter space-y-4">
+            <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide" id="categoryChips">
+            </div>
+
+            <div id="placesList" class="space-y-3 mt-2"></div>
+
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-6">
+                <h3 class="font-bold text-sm text-gray-500 mb-3"><i class="fas fa-plus-circle"></i> 장소 추가</h3>
+                <div class="space-y-2">
+                    <select id="placeCat"
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-blue-500 font-bold text-gray-600">
+                        <option value="집/회사/교회">집/회사/교회</option>
+                        <option value="음식점/카페">음식점/카페</option>
+                        <option value="쇼핑몰/광장/스포츠">쇼핑몰/광장/스포츠</option>
+                        <option value="공원/관광지">공원/관광지</option>
+                        <option value="병원/공항/기차">병원/공항/기차</option>
+                    </select>
+                    <input type="text" id="placeKr" placeholder="한국어 이름 (예: 한인마트)"
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-blue-500">
+                    <input type="text" id="placeCn" placeholder="중국어 주소/이름 (복사용)"
+                        class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-blue-500">
+                    <button onclick="addPlaceInfo()"
+                        class="w-full bg-red-500 text-white font-bold p-3 rounded-xl hover:bg-red-600 transition">추가하기</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="toast"
+        class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm opacity-0 pointer-events-none translate-y-5 z-50">
+        ✅ 복사되었습니다!
+    </div>
+
+    <script type="module">
+        // ★ Supabase 기본 세팅
+        const SUPABASE_URL = 'https://nydnthkqvpajufbycxjq.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_LWqTdLhSkspLke1HvFsmVA_KOYnGGaY';
+        const { createClient } = supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const tableFamily = 'cnation_table02';
+        const tablePlaces = 'cnation_table03';
+
+        // ★ [데이터] 1. 가족/집 기본 정보
+        const defaultFamily = [
+            { title: "문명국(중국전화번호)", content: "13013608090" },
+            { title: "백상희(중국전화번호)", content: "18552405531" },
+            { title: "문성윤(중국전화번호)", content: "18552403320" },
+            { title: "문명국(wén míng guó)", content: "文明国" },
+            { title: "백상희(bái shàng xǐ)", content: "白尚喜" },
+            { title: "문성현(wén shèngxián)", content: "文圣贤" },
+            { title: "문성윤(wén shèngyǔn)", content: "文圣允" },
+            { title: "우시완커아파트 주소", content: "江苏省 无锡市 新吴区 江溪街道 万科东郡 78-2601" },
+            { title: "와이파이 비번", content: "abcd2601" },
+            { title: "TV유선방송 라이센스번호", content: "1321" },
+            { title: "아파트1층 비번", content: "#005152#" },
+            { title: "배달기사에게 보낼 메세지", content: "不要打电话, 把东西放在门口。78号 门的密码是 #005152#" },
+            { title: "지금 전화 못받으니 문앞에", content: "你好！不好意思，我现在不能接电话，东西放在门口就可以了，谢谢" }
+        ];
+
+        // ★ [데이터] 2. 주요 장소 기본 정보 (카테고리별)
+        const defaultPlaces = [
+            { cat: "집/회사/교회", kr: "완커아파트 78동", cn: "万科东郡78号" },
+            { cat: "집/회사/교회", kr: "우시 하이닉스 정문", cn: "SK海士半导体(中国)有限公司(北门)" },
+            { cat: "집/회사/교회", kr: "하이닉스 기숙사 후문", cn: "海力士半导体(中国)有限公司宿舍区(东门)" },
+            { cat: "집/회사/교회", kr: "무석연합교회", cn: "无锡市新区基督教国际礼拜堂" },
+            { cat: "집/회사/교회", kr: "무석 한국학교", cn: "无锡韩国学校" },
+            { cat: "집/회사/교회", kr: "동화원", cn: "东和元" },
+            { cat: "집/회사/교회", kr: "밀레니엄호텔", cn: "无锡千禧大酒店" },
+            { cat: "집/회사/교회", kr: "힐튼호텔", cn: "无锡希尔顿逸林酒店" },
+            { cat: "음식점/카페", kr: "경복궁(하이닉스앞)", cn: "景福宫韩国料理(IC设计大厦店)" },
+            { cat: "음식점/카페", kr: "홍보각(짜르 중국집)", cn: "洪宝阁中华料理" },
+            { cat: "음식점/카페", kr: "청학골(푸리청)", cn: "青鹤谷" },
+            { cat: "음식점/카페", kr: "우정정육식당(푸리청)", cn: "牛亭碳烤(富力星光里风情商业街店)" },
+            { cat: "음식점/카페", kr: "히말라야 빵집 1호점", cn: "喜马拉雅森（星光里店）" },
+            { cat: "음식점/카페", kr: "24Krunch(난창지애)", cn: "24Krunch澳式餐吧" },
+            { cat: "음식점/카페", kr: "orderly 레스토랑", cn: "有序orderly(融合餐厅·咖啡)" },
+            { cat: "음식점/카페", kr: "헌지오우이치엔 리바트점", cn: "荟聚·无锡购物中心北区-主入口(主路)" },
+            { cat: "음식점/카페", kr: "옐로우카페", cn: "YELLOW咖啡(新区店)" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "BOB스포츠센터(푸리청)", cn: "BOB运动街区·篮球·健身·游泳" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "BOB앞 도로", cn: "江苏省无锡市新吴区江溪路60-14号" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "1969배드민턴장", cn: "季天下敲打搏击精品馆 (1969街区店)" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "찐룬광장", cn: "金轮广场" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "짜르광장", cn: "假日广场" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "리바트몰", cn: "荟聚" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "바오롱 광장", cn: "宝龙广场" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "완다 광장", cn: "万达广场" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "완샹청", cn: "万象城" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "해안청", cn: "海岸城" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "헝롱광장", cn: "恒隆广场" },
+            { cat: "쇼핑몰/광장/스포츠", kr: "수닝광장", cn: "苏宁广场" },
+            { cat: "공원/관광지", kr: "리후 대교 공원", cn: "蠡湖大桥公园" },
+            { cat: "공원/관광지", kr: "후이산 고진 관광지", cn: "惠山古镇景区" },
+            { cat: "공원/관광지", kr: "삼국성", cn: "三国城" },
+            { cat: "공원/관광지", kr: "태호", cn: "太湖" },
+            { cat: "공원/관광지", kr: "태호(원두저공원)", cn: "鼋头渚" },
+            { cat: "공원/관광지", kr: "위엔토우주", cn: "鼋头渚" },
+            { cat: "공원/관광지", kr: "우시동물원", cn: "无锡动物园" },
+            { cat: "병원/공항/기차", kr: "우시공항 국제선", cn: "无锡硕放机场T1航站楼(国际港澳台到达)" },
+            { cat: "병원/공항/기차", kr: "우시기차역", cn: "无锡火车站" },
+            { cat: "병원/공항/기차", kr: "카이병원", cn: "新吴区 香山路3号" },
+            { cat: "병원/공항/기차", kr: "8인민병원", cn: "无锡市第八人民医院" },
+            { cat: "병원/공항/기차", kr: "화웨이병원", cn: "华卫医院" },
+            { cat: "병원/공항/기차", kr: "래미안 치과", cn: "休美安口腔" },
+            // 팀장님 요청 반영: 홍차오 공항의 중국어 명칭 오류(푸동으로 되어있던 점) 수정 완료!
+            { cat: "병원/공항/기차", kr: "홍차오공항(상해)", cn: "上海虹桥国际机场" },
+            { cat: "병원/공항/기차", kr: "푸동공항(상해)", cn: "上海浦东国际机场" }
+        ];
+
+        let currentCategory = "전체";
+
+        // ======================= [ 복사 기능 ] =======================
+        window.copyText = (text) => {
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('opacity-0', 'translate-y-5');
+                toast.classList.add('opacity-100', 'translate-y-0');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-5');
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                }, 2000);
+            });
+        };
+
+        // ======================= [ 화면 전환 로직 ] =======================
+        window.showView = (viewId, title = '') => {
+            document.querySelectorAll('.page-enter').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+            if (viewId !== 'main') {
+                document.getElementById('navBar').classList.remove('hidden');
+                document.getElementById('topSpacer').classList.remove('hidden');
+                document.getElementById('navTitle').innerText = title;
+            } else {
+                document.getElementById('navBar').classList.add('hidden');
+                document.getElementById('topSpacer').classList.add('hidden');
+            }
+
+            if (viewId === 'family') loadFamily();
+        };
+
+        window.goHome = () => showView('main');
+
+        window.showPlaces = (cat) => {
+            currentCategory = cat;
+            showView('places', '주요 장소');
+            loadPlaces();
+        }
+
+        // ======================= [ 가족/집 데이터 관리 ] =======================
+        async function loadFamily() {
+            const listDiv = document.getElementById('familyList');
+            listDiv.innerHTML = '<div class="text-center py-4 text-gray-400">데이터 로딩 중...</div>';
+
+            try {
+                const { data, error } = await _supabase.from(tableFamily).select('*').order('created_at', { ascending: true });
+                const combined = [...defaultFamily, ...(data || [])];
+
+                listDiv.innerHTML = combined.map(item => `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
+                        <div class="flex-1 overflow-hidden">
+                            <h4 class="text-[10px] font-bold text-gray-400 mb-0.5 truncate">${item.title}</h4>
+                            <p class="text-sm font-bold text-gray-800 line-clamp-2">${item.content}</p>
+                        </div>
+                        <button onclick="copyText('${item.content}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                            <i class="far fa-copy mr-1"></i>복사
+                        </button>
+                    </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        window.addFamilyInfo = async () => {
+            const title = document.getElementById('famTitle').value;
+            const content = document.getElementById('famContent').value;
+            if (!title || !content) return alert('항목과 내용을 모두 입력해주세요.');
+
+            const { error } = await _supabase.from(tableFamily).insert([{ title, content }]);
+            if (error) alert('추가 실패!');
+            else {
+                document.getElementById('famTitle').value = '';
+                document.getElementById('famContent').value = '';
+                loadFamily();
+            }
+        };
+
+        // ======================= [ 주요 장소 데이터 관리 ] =======================
+        async function loadPlaces() {
+            const listDiv = document.getElementById('placesList');
+            const chipDiv = document.getElementById('categoryChips');
+
+            // 칩 UI 그리기
+            const cats = ["전체", "집/회사/교회", "음식점/카페", "쇼핑몰/광장/스포츠", "공원/관광지", "병원/공항/기차"];
+            chipDiv.innerHTML = cats.map(c => `
+                <button onclick="showPlaces('${c}')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition border ${currentCategory === c ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-white text-gray-500 border-gray-200'}">
+                    ${c}
+                </button>
+            `).join('');
+
+            listDiv.innerHTML = '<div class="text-center py-4 text-gray-400">데이터 로딩 중...</div>';
+
+            try {
+                const { data, error } = await _supabase.from(tablePlaces).select('*').order('created_at', { ascending: true });
+                let combined = [...defaultPlaces, ...(data || [])];
+
+                if (currentCategory !== "전체") {
+                    combined = combined.filter(item => item.cat === currentCategory || item.category === currentCategory);
+                }
+
+                if (combined.length === 0) {
+                    listDiv.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">등록된 장소가 없습니다.</div>';
+                    return;
+                }
+
+                listDiv.innerHTML = combined.map(item => {
+                    const cnText = item.cn || item.name_cn;
+                    const krText = item.kr || item.name_kr;
+                    const catText = item.cat || item.category;
+                    return `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
+                        <div class="flex-1 overflow-hidden">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-bold">${catText}</span>
+                                <h4 class="text-xs font-bold text-gray-800 truncate">${krText}</h4>
+                            </div>
+                            <p class="text-sm font-bold text-red-500 line-clamp-2">${cnText}</p>
+                        </div>
+                        <button onclick="copyText('${cnText}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                            <i class="far fa-copy mr-1"></i>복사
+                        </button>
+                    </div>
+                `}).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        window.addPlaceInfo = async () => {
+            const category = document.getElementById('placeCat').value;
+            const name_kr = document.getElementById('placeKr').value;
+            const name_cn = document.getElementById('placeCn').value;
+
+            if (!name_kr || !name_cn) return alert('한국어 이름과 중국어 주소를 모두 입력해주세요.');
+
+            const { error } = await _supabase.from(tablePlaces).insert([{ category, name_kr, name_cn }]);
+            if (error) alert('추가 실패!');
+            else {
+                document.getElementById('placeKr').value = '';
+                document.getElementById('placeCn').value = '';
+                // 추가 후 해당 카테고리로 자동 이동
+                showPlaces(category);
+            }
+        };
+
+    </script>
+</body>
+
+</html>
