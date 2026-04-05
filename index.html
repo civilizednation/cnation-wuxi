@@ -47,9 +47,8 @@
 
         <div id="view-main" class="page-enter">
             <div
-                class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-6 p-8 text-center text-white">
-                <h1 class="text-2xl font-black mb-2 tracking-tight">명국이의<br>중국생활 도우미 🇨🇳</h1>
-                <p class="text-xs text-blue-200 uppercase tracking-widest font-bold">Wuxi Life Assistant</p>
+                class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-5 p-5 text-center text-white">
+                <h1 class="text-xl font-black tracking-tight">명국이의 중국생활 도우미</h1>
             </div>
 
             <button onclick="showView('family', '가족/집 정보')"
@@ -67,7 +66,7 @@
             </button>
 
             <button onclick="showView('company', '회사/교회 셔틀')"
-                class="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between mb-8 hover:shadow-md transition active:scale-95">
+                class="w-full bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between mb-6 hover:shadow-md transition active:scale-95">
                 <div class="flex items-center gap-4">
                     <div
                         class="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center text-xl">
@@ -325,12 +324,12 @@
                 const { data, error } = await _supabase.from(tableFamily).select('*').order('created_at', { ascending: true });
                 const combined = [...defaultFamily, ...(data || [])];
 
-                // ★ 수정된 부분: 항목(title)의 폰트 크기를 본문과 동일한 text-sm으로 변경하고, 색상을 살짝 짙게(text-gray-600) 맞췄습니다.
+                // ★ 수정된 부분: 항목(title) 폰트는 그대로 두고, 내용(content)을 파란색(text-blue-600)으로 바꿔 직관성을 높였습니다.
                 listDiv.innerHTML = combined.map(item => `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
                         <div class="flex-1 overflow-hidden">
                             <h4 class="text-sm font-bold text-gray-600 mb-0.5 truncate">${item.title}</h4>
-                            <p class="text-sm font-bold text-gray-800 line-clamp-2">${item.content}</p>
+                            <p class="text-sm font-bold text-blue-600 line-clamp-2">${item.content}</p>
                         </div>
                         <button onclick="copyText('${item.content}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
                             <i class="far fa-copy mr-1"></i>복사
@@ -381,7 +380,6 @@
                     return;
                 }
 
-                // ★ 수정된 부분: 한국어 이름(krText) 폰트를 text-sm으로 중국어(cnText)와 동일하게 키웠습니다.
                 listDiv.innerHTML = combined.map(item => {
                     const cnText = item.cn || item.name_cn;
                     const krText = item.kr || item.name_kr;
