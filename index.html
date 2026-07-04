@@ -250,6 +250,7 @@
             { cat: "음식점/카페", kr: "orderly 레스토랑", cn: "有序orderly(融合餐厅·咖啡)" },
             { cat: "음식점/카페", kr: "헌지오우이치엔 리바트점", cn: "荟聚·无锡购物中心北区-主入口(主路)" },
             { cat: "음식점/카페", kr: "옐로우카페", cn: "YELLOW咖啡(新区店)" },
+            { cat: "음식점/카페", kr: "롱샤 맛집 (짜르광장 맞은편)", cn: "李式龙虾·蒜泥龙虾(红旗路店)" },
             { cat: "쇼핑몰/광장/스포츠", kr: "BOB스포츠센터(푸리청)", cn: "BOB运动街区·篮球·健身·游泳" },
             { cat: "쇼핑몰/광장/스포츠", kr: "BOB앞 도로", cn: "江苏省无锡市新吴区江溪路60-14号" },
             { cat: "쇼핑몰/광장/스포츠", kr: "1969배드민턴장", cn: "季天下敲打搏击精品馆 (1969街区店)" },
@@ -327,17 +328,23 @@
             try {
                 const { data, error } = await _supabase.from(tableFamily).select('*').order('created_at', { ascending: true });
                 if (error) throw error;
-                const combined = [...defaultFamily, ...(data || [])];
+
+                const defaultItems = defaultFamily.map(item => ({ ...item, isDefault: true }));
+                const userItems = (data || []).map(item => ({ ...item, isDefault: false }));
+                const combined = [...defaultItems, ...userItems];
 
                 listDiv.innerHTML = combined.map((item, idx) => `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
                         <div class="flex-1 overflow-hidden">
                             <h4 class="text-sm font-bold text-gray-600 mb-0.5 truncate">${item.title}</h4>
-                            <p class="text-sm font-bold text-blue-600 line-clamp-2">${item.content}</p>
+                            <p class="text-sm font-bold text-blue-600 break-all">${item.content}</p>
                         </div>
-                        <button data-copy-idx="${idx}" class="copy-family-btn bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
-                            <i class="far fa-copy mr-1"></i>복사
-                        </button>
+                        <div class="flex flex-col gap-1.5">
+                            <button data-copy-idx="${idx}" class="copy-family-btn bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                                <i class="far fa-copy mr-1"></i>복사
+                            </button>
+                            ${!item.isDefault ? `<button onclick="deleteFamilyInfo(${item.id})" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
+                        </div>
                     </div>
                 `).join('');
 
@@ -370,6 +377,18 @@
             }
         };
 
+        window.deleteFamilyInfo = async (id) => {
+            if (!confirm('정말로 이 항목을 삭제하시겠습니까?')) return;
+
+            const { error } = await _supabase.from(tableFamily).delete().eq('id', id);
+            if (error) {
+                console.error('Supabase delete error (family):', error);
+                alert('삭제 실패: ' + (error.message || '알 수 없는 오류'));
+            } else {
+                loadFamily();
+            }
+        };
+
         // ======================= [ 주요 장소 데이터 관리 ] =======================
         async function loadPlaces() {
             const listDiv = document.getElementById('placesList');
@@ -391,11 +410,12 @@
                 // ★ Supabase에서 온 데이터는 실제 컬럼명(category, name_kr, name_cn)을 cat/kr/cn 형태로 통일
                 const remoteNormalized = (data || []).map(item => ({
                     cat: item.cat || item.category,
-                    kr: item.kr || item.name_kr,
-                    cn: item.cn || item.name_cn
+                    kr: item.name_kr,
+                    cn: item.name_cn,
+                    id: item.id // 삭제를 위해 id를 전달
                 }));
 
-                let combined = [...defaultPlaces, ...remoteNormalized];
+                let combined = [...defaultPlaces.map(p => ({ ...p, isDefault: true })), ...remoteNormalized.map(p => ({ ...p, isDefault: false }))];
 
                 if (currentCategory !== "전체") {
                     combined = combined.filter(item => item.cat === currentCategory);
@@ -413,11 +433,14 @@
                                 <span class="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-bold">${item.cat}</span>
                                 <h4 class="text-sm font-bold text-gray-800 truncate">${item.kr}</h4>
                             </div>
-                            <p class="text-sm font-bold text-red-500 line-clamp-2">${item.cn}</p>
+                            <p class="text-sm font-bold text-red-500 break-all">${item.cn}</p>
                         </div>
-                        <button data-copy-idx="${idx}" class="copy-place-btn bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
-                            <i class="far fa-copy mr-1"></i>복사
-                        </button>
+                        <div class="flex flex-col gap-1.5">
+                            <button data-copy-idx="${idx}" class="copy-place-btn bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                                <i class="far fa-copy mr-1"></i>복사
+                            </button>
+                            ${!item.isDefault ? `<button onclick="deletePlaceInfo(${item.id})" class="bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
+                        </div>
                     </div>
                 `).join('');
 
@@ -450,6 +473,18 @@
                 document.getElementById('placeKr').value = '';
                 document.getElementById('placeCn').value = '';
                 showPlaces(category);
+            }
+        };
+
+        window.deletePlaceInfo = async (id) => {
+            if (!confirm('정말로 이 장소를 삭제하시겠습니까?')) return;
+
+            const { error } = await _supabase.from(tablePlaces).delete().eq('id', id);
+            if (error) {
+                console.error('Supabase delete error (place):', error);
+                alert('삭제 실패: ' + (error.message || '알 수 없는 오류'));
+            } else {
+                loadPlaces();
             }
         };
 
