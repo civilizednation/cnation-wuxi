@@ -230,6 +230,8 @@
         ];
 
         // ★ [데이터] 2. 주요 장소 기본 정보 (카테고리별)
+        // 주의: 여기 있는 cat/kr/cn 은 하드코딩된 로컬 기본 데이터용 키일 뿐,
+        // Supabase 테이블의 실제 컬럼명(category, name_kr, name_cn)과는 다릅니다.
         const defaultPlaces = [
             { cat: "집/회사/교회", kr: "완커아파트 78동", cn: "万科东郡78号" },
             { cat: "집/회사/교회", kr: "우시 하이닉스 정문", cn: "SK海士半导体(中国)有限公司(北门)" },
@@ -324,21 +326,32 @@
 
             try {
                 const { data, error } = await _supabase.from(tableFamily).select('*').order('created_at', { ascending: true });
+                if (error) throw error;
                 const combined = [...defaultFamily, ...(data || [])];
 
-                // ★ 수정된 부분: 항목(title) 폰트는 그대로 두고, 내용(content)을 파란색(text-blue-600)으로 바꿔 직관성을 높였습니다.
-                listDiv.innerHTML = combined.map(item => `
+                listDiv.innerHTML = combined.map((item, idx) => `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
                         <div class="flex-1 overflow-hidden">
                             <h4 class="text-sm font-bold text-gray-600 mb-0.5 truncate">${item.title}</h4>
                             <p class="text-sm font-bold text-blue-600 line-clamp-2">${item.content}</p>
                         </div>
-                        <button onclick="copyText('${item.content}')" class="bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                        <button data-copy-idx="${idx}" class="copy-family-btn bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
                             <i class="far fa-copy mr-1"></i>복사
                         </button>
                     </div>
                 `).join('');
-            } catch (err) { console.error(err); }
+
+                // ★ 수정: onclick 문자열 삽입 대신 이벤트 리스너로 바인딩 (내용에 따옴표/특수문자가 있어도 안전)
+                listDiv.querySelectorAll('.copy-family-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const idx = Number(btn.dataset.copyIdx);
+                        copyText(combined[idx].content);
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                listDiv.innerHTML = `<div class="text-center py-8 text-red-400 text-sm">데이터 로딩 실패: ${err.message || err}</div>`;
+            }
         }
 
         window.addFamilyInfo = async () => {
@@ -347,8 +360,10 @@
             if (!title || !content) return alert('항목과 내용을 모두 입력해주세요.');
 
             const { error } = await _supabase.from(tableFamily).insert([{ title, content }]);
-            if (error) alert('추가 실패!');
-            else {
+            if (error) {
+                console.error('Supabase insert error (family):', error);
+                alert('추가 실패: ' + (error.message || '알 수 없는 오류'));
+            } else {
                 document.getElementById('famTitle').value = '';
                 document.getElementById('famContent').value = '';
                 loadFamily();
@@ -371,10 +386,19 @@
 
             try {
                 const { data, error } = await _supabase.from(tablePlaces).select('*').order('created_at', { ascending: true });
-                let combined = [...defaultPlaces, ...(data || [])];
+                if (error) throw error;
+
+                // ★ Supabase에서 온 데이터는 실제 컬럼명(category, name_kr, name_cn)을 cat/kr/cn 형태로 통일
+                const remoteNormalized = (data || []).map(item => ({
+                    cat: item.cat || item.category,
+                    kr: item.kr || item.name_kr,
+                    cn: item.cn || item.name_cn
+                }));
+
+                let combined = [...defaultPlaces, ...remoteNormalized];
 
                 if (currentCategory !== "전체") {
-                    combined = combined.filter(item => item.cat === currentCategory || item.category === currentCategory);
+                    combined = combined.filter(item => item.cat === currentCategory);
                 }
 
                 if (combined.length === 0) {
@@ -382,25 +406,32 @@
                     return;
                 }
 
-                listDiv.innerHTML = combined.map(item => {
-                    const cnText = item.cn || item.name_cn;
-                    const krText = item.kr || item.name_kr;
-                    const catText = item.cat || item.category;
-                    return `
+                listDiv.innerHTML = combined.map((item, idx) => `
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center gap-3">
                         <div class="flex-1 overflow-hidden">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-bold">${catText}</span>
-                                <h4 class="text-sm font-bold text-gray-800 truncate">${krText}</h4>
+                                <span class="bg-gray-100 text-gray-500 text-[9px] px-1.5 py-0.5 rounded font-bold">${item.cat}</span>
+                                <h4 class="text-sm font-bold text-gray-800 truncate">${item.kr}</h4>
                             </div>
-                            <p class="text-sm font-bold text-red-500 line-clamp-2">${cnText}</p>
+                            <p class="text-sm font-bold text-red-500 line-clamp-2">${item.cn}</p>
                         </div>
-                        <button onclick="copyText('${cnText}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
+                        <button data-copy-idx="${idx}" class="copy-place-btn bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
                             <i class="far fa-copy mr-1"></i>복사
                         </button>
                     </div>
-                `}).join('');
-            } catch (err) { console.error(err); }
+                `).join('');
+
+                // ★ 수정: onclick 문자열 삽입 대신 이벤트 리스너로 바인딩 (주소에 따옴표/특수문자가 있어도 안전)
+                listDiv.querySelectorAll('.copy-place-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const idx = Number(btn.dataset.copyIdx);
+                        copyText(combined[idx].cn);
+                    });
+                });
+            } catch (err) {
+                console.error(err);
+                listDiv.innerHTML = `<div class="text-center py-8 text-red-400 text-sm">데이터 로딩 실패: ${err.message || err}</div>`;
+            }
         }
 
         window.addPlaceInfo = async () => {
@@ -410,11 +441,11 @@
 
             if (!name_kr || !name_cn) return alert('한국어 이름과 중국어 주소를 모두 입력해주세요.');
 
-            // Supabase 테이블이 기본 데이터와 같은 키를 사용한다고 가정합니다.
-            const { error } = await _supabase.from(tablePlaces).insert([{ cat: category, kr: name_kr, cn: name_cn }]);
+            // ★ 수정: Supabase 테이블(cnation_table03)의 실제 컬럼명(category, name_kr, name_cn)에 맞춰 insert
+            const { error } = await _supabase.from(tablePlaces).insert([{ category, name_kr, name_cn }]);
             if (error) {
-                console.error('Supabase insert error:', error);
-                alert('추가 실패!');
+                console.error('Supabase insert error (place):', error);
+                alert('추가 실패: ' + (error.message || '알 수 없는 오류'));
             } else {
                 document.getElementById('placeKr').value = '';
                 document.getElementById('placeCn').value = '';
