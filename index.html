@@ -410,9 +410,12 @@
 
             if (!name_kr || !name_cn) return alert('한국어 이름과 중국어 주소를 모두 입력해주세요.');
 
-            const { error } = await _supabase.from(tablePlaces).insert([{ category, name_kr, name_cn }]);
-            if (error) alert('추가 실패!');
-            else {
+            // Supabase 테이블이 기본 데이터와 같은 키를 사용한다고 가정합니다.
+            const { error } = await _supabase.from(tablePlaces).insert([{ cat: category, kr: name_kr, cn: name_cn }]);
+            if (error) {
+                console.error('Supabase insert error:', error);
+                alert('추가 실패!');
+            } else {
                 document.getElementById('placeKr').value = '';
                 document.getElementById('placeCn').value = '';
                 showPlaces(category);
