@@ -46,10 +46,7 @@
 
         <div id="view-main" class="page-enter">
             <div
-                class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-5 p-5 text-center text-white relative">
-                <button onclick="setupToken()" title="GitHub 토큰 설정"
-                    class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 active:scale-95 transition"><i
-                        class="fas fa-gear"></i></button>
+                class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-5 p-5 text-center text-white">
                 <h1 class="text-xl font-black tracking-tight">명국이의 중국생활 도우미</h1>
             </div>
 
@@ -205,12 +202,26 @@
     </div>
 
     <script type="module">
-        // ★ GitHub 저장소에 직접 데이터를 저장하는 설정 (Supabase 대체)
-        const GH_OWNER = 'civilizednation';
-        const GH_REPO = 'cnation-wuxi';
-        const GH_BRANCH = 'main';
-        const DATA_PATH = 'data.json';
-        const GH_TOKEN_KEY = 'cnation_gh_token';
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+        import {
+            getFirestore, collection, query, orderBy, getDocs, addDoc, deleteDoc, doc, serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+        // ★ Firebase 기본 세팅 (사용자가 추가한 데이터만 여기 저장됩니다)
+        const firebaseConfig = {
+            apiKey: "AIzaSyCTwOAC_LrrKH8CKepUOTf0pyd9qRv4y_8",
+            authDomain: "cnation-project.firebaseapp.com",
+            projectId: "cnation-project",
+            storageBucket: "cnation-project.firebasestorage.app",
+            messagingSenderId: "1004154104261",
+            appId: "1:1004154104261:web:0eac4c7ded38262ae5c3ac",
+            measurementId: "G-7PW1NSP5EQ"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const familyCol = collection(db, 'family');
+        const placesCol = collection(db, 'places');
 
         // ★ [데이터] 1. 가족/집 기본 정보
         const defaultFamily = [
@@ -282,99 +293,17 @@
 
         let currentCategory = "전체";
 
-        // ======================= [ GitHub 데이터 저장소 ] =======================
-        // data.json 에는 사용자가 "추가하기"로 넣은 항목만 저장됩니다.
+        // ======================= [ Firestore 데이터 조회 ] =======================
+        // family / places 컬렉션에는 사용자가 "추가하기"로 넣은 항목만 저장됩니다.
         // (기본 데이터는 defaultFamily / defaultPlaces 에 코드로 포함되어 있습니다)
-        function getToken() {
-            return localStorage.getItem(GH_TOKEN_KEY) || '';
+        async function fetchFamily() {
+            const snap = await getDocs(query(familyCol, orderBy('createdAt', 'asc')));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
 
-        window.setupToken = () => {
-            const current = getToken();
-            const input = prompt(
-                'GitHub Personal Access Token을 입력하세요.\n' +
-                '(Fine-grained token, 이 저장소(' + GH_REPO + ')에 대한 Contents 읽기/쓰기 권한 필요)\n' +
-                '비워두고 확인을 누르면 저장된 토큰이 삭제됩니다.',
-                current
-            );
-            if (input === null) return;
-            const trimmed = input.trim();
-            if (trimmed === '') {
-                localStorage.removeItem(GH_TOKEN_KEY);
-                alert('토큰이 삭제되었습니다.');
-            } else {
-                localStorage.setItem(GH_TOKEN_KEY, trimmed);
-                alert('토큰이 저장되었습니다.');
-            }
-        };
-
-        function ensureToken() {
-            let token = getToken();
-            if (!token) {
-                window.setupToken();
-                token = getToken();
-            }
-            return token;
-        }
-
-        function utf8ToB64(str) {
-            return btoa(unescape(encodeURIComponent(str)));
-        }
-
-        // 항상 최신 데이터를 읽기 위해 캐시를 우회해서 raw 파일을 가져옵니다.
-        async function fetchData() {
-            try {
-                const res = await fetch(
-                    `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${DATA_PATH}?t=${Date.now()}`
-                );
-                if (!res.ok) return { family: [], places: [] };
-                const json = await res.json();
-                return { family: json.family || [], places: json.places || [] };
-            } catch (err) {
-                console.error('데이터 조회 실패:', err);
-                return { family: [], places: [] };
-            }
-        }
-
-        async function getFileSha(token) {
-            const res = await fetch(
-                `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${DATA_PATH}?ref=${GH_BRANCH}`,
-                { headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' } }
-            );
-            if (res.status === 404) return null;
-            if (!res.ok) throw new Error('GitHub 조회 실패 (' + res.status + ')');
-            const json = await res.json();
-            return json.sha;
-        }
-
-        async function commitData(data, message) {
-            const token = getToken();
-            if (!token) throw new Error('GitHub 토큰이 설정되어 있지 않습니다.');
-
-            const sha = await getFileSha(token);
-            const body = {
-                message,
-                content: utf8ToB64(JSON.stringify(data, null, 2)),
-                branch: GH_BRANCH
-            };
-            if (sha) body.sha = sha;
-
-            const res = await fetch(
-                `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${DATA_PATH}`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: 'application/vnd.github+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                }
-            );
-            if (!res.ok) {
-                const errJson = await res.json().catch(() => ({}));
-                throw new Error(errJson.message || ('GitHub 저장 실패 (' + res.status + ')'));
-            }
+        async function fetchPlaces() {
+            const snap = await getDocs(query(placesCol, orderBy('createdAt', 'asc')));
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }));
         }
 
         // ======================= [ 복사 기능 ] =======================
@@ -432,7 +361,7 @@
                         <button data-copy-idx="${idx}" class="copy-family-btn bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
                             <i class="far fa-copy mr-1"></i>복사
                         </button>
-                        ${!item.isDefault ? `<button onclick="deleteFamilyInfo(${item.id})" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
+                        ${!item.isDefault ? `<button onclick="deleteFamilyInfo('${item.id}')" class="bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -451,7 +380,7 @@
             listDiv.innerHTML = '<div class="text-center py-4 text-gray-400">데이터 로딩 중...</div>';
 
             try {
-                const { family } = await fetchData();
+                const family = await fetchFamily();
                 renderFamily(family);
             } catch (err) {
                 console.error(err);
@@ -464,17 +393,13 @@
             const content = document.getElementById('famContent').value.trim();
             if (!title || !content) return alert('항목과 내용을 모두 입력해주세요.');
 
-            if (!ensureToken()) return;
-
             try {
-                const data = await fetchData();
-                data.family.push({ id: Date.now(), title, content });
-                await commitData(data, `가족정보 추가: ${title}`);
+                await addDoc(familyCol, { title, content, createdAt: serverTimestamp() });
                 document.getElementById('famTitle').value = '';
                 document.getElementById('famContent').value = '';
-                renderFamily(data.family);
+                loadFamily();
             } catch (err) {
-                console.error('GitHub 저장 오류 (family):', err);
+                console.error('Firestore 저장 오류 (family):', err);
                 alert('추가 실패: ' + (err.message || '알 수 없는 오류'));
             }
         };
@@ -482,15 +407,11 @@
         window.deleteFamilyInfo = async (id) => {
             if (!confirm('정말로 이 항목을 삭제하시겠습니까?')) return;
 
-            if (!ensureToken()) return;
-
             try {
-                const data = await fetchData();
-                data.family = data.family.filter(item => item.id !== id);
-                await commitData(data, `가족정보 삭제 (id: ${id})`);
-                renderFamily(data.family);
+                await deleteDoc(doc(db, 'family', id));
+                loadFamily();
             } catch (err) {
-                console.error('GitHub 삭제 오류 (family):', err);
+                console.error('Firestore 삭제 오류 (family):', err);
                 alert('삭제 실패: ' + (err.message || '알 수 없는 오류'));
             }
         };
@@ -539,7 +460,7 @@
                         <button data-copy-idx="${idx}" class="copy-place-btn bg-red-50 text-red-600 hover:bg-red-100 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition">
                             <i class="far fa-copy mr-1"></i>복사
                         </button>
-                        ${!item.isDefault ? `<button onclick="deletePlaceInfo(${item.id})" class="bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
+                        ${!item.isDefault ? `<button onclick="deletePlaceInfo('${item.id}')" class="bg-gray-100 text-gray-600 hover:bg-gray-200 font-bold px-3 py-2 rounded-lg text-xs whitespace-nowrap active:scale-95 transition"><i class="far fa-trash-alt mr-1"></i>삭제</button>` : ''}
                     </div>
                 </div>
             `).join('');
@@ -558,7 +479,7 @@
             listDiv.innerHTML = '<div class="text-center py-4 text-gray-400">데이터 로딩 중...</div>';
 
             try {
-                const { places } = await fetchData();
+                const places = await fetchPlaces();
                 renderPlaces(places);
             } catch (err) {
                 console.error(err);
@@ -573,18 +494,13 @@
 
             if (!name_kr || !name_cn) return alert('한국어 이름과 중국어 주소를 모두 입력해주세요.');
 
-            if (!ensureToken()) return;
-
             try {
-                const data = await fetchData();
-                data.places.push({ id: Date.now(), category, name_kr, name_cn });
-                await commitData(data, `장소 추가: ${name_kr}`);
+                await addDoc(placesCol, { category, name_kr, name_cn, createdAt: serverTimestamp() });
                 document.getElementById('placeKr').value = '';
                 document.getElementById('placeCn').value = '';
-                currentCategory = category;
-                renderPlaces(data.places);
+                showPlaces(category);
             } catch (err) {
-                console.error('GitHub 저장 오류 (place):', err);
+                console.error('Firestore 저장 오류 (place):', err);
                 alert('추가 실패: ' + (err.message || '알 수 없는 오류'));
             }
         };
@@ -592,15 +508,11 @@
         window.deletePlaceInfo = async (id) => {
             if (!confirm('정말로 이 장소를 삭제하시겠습니까?')) return;
 
-            if (!ensureToken()) return;
-
             try {
-                const data = await fetchData();
-                data.places = data.places.filter(item => item.id !== id);
-                await commitData(data, `장소 삭제 (id: ${id})`);
-                renderPlaces(data.places);
+                await deleteDoc(doc(db, 'places', id));
+                loadPlaces();
             } catch (err) {
-                console.error('GitHub 삭제 오류 (place):', err);
+                console.error('Firestore 삭제 오류 (place):', err);
                 alert('삭제 실패: ' + (err.message || '알 수 없는 오류'));
             }
         };
